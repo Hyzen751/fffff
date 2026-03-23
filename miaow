@@ -293,7 +293,7 @@ esptab:Toggle("Exit ESP", function()
 end)
 
 funtab:Button("FE Audio Control", function()
-    loadstring(game:HttpGet("https://pastebin.com/raw/ifBh7npa"))()
+    loadstring(game:HttpGet("https://pastebin.com/raw/WbCDBdvb"))()
 end)
 
 tpstab:Button("Spawn", function()
