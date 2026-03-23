@@ -1,4 +1,4 @@
-local ui = loadstring(game:HttpGet("https://raw.githubusercontent.com/Hyzen751/fffff/refs/heads/main/miaow"))()
+local ui = loadstring(game:HttpGet("https://raw.githubusercontent.com/ghostofcelleron/Celeron/refs/heads/main/daff"))()
 
 local win = ui:Create({
     Name = "Celeron's GUI (Flee The Facility)",
@@ -27,13 +27,16 @@ getgenv().humanoidConnection = nil
 
 getgenv().applySpeed = function()
 	if not getgenv().lastSliderSet then return end
+
 	if (game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid") then
 		if (game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid").WalkSpeed ~= getgenv().lastSliderSet then
 			(game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid").WalkSpeed = getgenv().lastSliderSet
 		end
+
 		if getgenv().humanoidConnection then
 			getgenv().humanoidConnection:Disconnect()
 		end
+
 		getgenv().humanoidConnection = (game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):Connect(function()
 			if (game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid").WalkSpeed ~= getgenv().lastSliderSet then
 				(game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()):FindFirstChildOfClass("Humanoid").WalkSpeed = getgenv().lastSliderSet
@@ -48,32 +51,43 @@ maintab:Textbox("Player Speed", function(v)
 end)
 
 maintab:Toggle("Automatic Hacking", "Hacking Is Always Successful Without Hitting Quick Time Events.", function()
-	_G.AutomaticHackingEnabled = not _G.AutomaticHackingEnabled
-	game:GetService("StarterGui"):SetCore("SendNotification", {
-		Title = "Automatic Hacking";
-		Text = _G.AutomaticHackingEnabled and "Enabled." or "Disabled.";
-		Duration = 3;
-	})
-	while _G.AutomaticHackingEnabled do
-		wait(0.1)
-		local args = {"SetPlayerMinigameResult", true}
-		game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
-	end
+_G.AutomaticHackingEnabled = not _G.AutomaticHackingEnabled
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Automatic Hacking";
+    Text = _G.AutomaticHackingEnabled and "Enabled." or "Disabled.";
+    Duration = 3;
+})
+
+while _G.AutomaticHackingEnabled do
+    wait(0.1)
+    local args = {
+        "SetPlayerMinigameResult",
+        true
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+end
 end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+
 local speaker = Players.LocalPlayer
 local thirdPersonEnabled = false
 local cameraLoop = nil
 
 local function notify(title, text)
-	StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = 3})
+	StarterGui:SetCore("SendNotification", {
+		Title = title,
+		Text = text,
+		Duration = 3
+	})
 end
 
 maintab:Toggle("Always Allow Third Person", "Allows You To Go Third Person As The Beast.", function()
 	thirdPersonEnabled = not thirdPersonEnabled
+
 	if thirdPersonEnabled then
 		notify("Always Allow Third Person", "Enabled.")
 		speaker.CameraMode = Enum.CameraMode.Classic
@@ -84,7 +98,10 @@ maintab:Toggle("Always Allow Third Person", "Allows You To Go Third Person As Th
 		end)
 	else
 		notify("Always Allow Third Person", "Disabled.")
-		if cameraLoop then cameraLoop:Disconnect() cameraLoop = nil end
+		if cameraLoop then
+			cameraLoop:Disconnect()
+			cameraLoop = nil
+		end
 	end
 end)
 
@@ -92,102 +109,132 @@ local lastClickTime = 0
 local clickCooldown = 3
 
 maintab:Button("Self Revive (Use In Freezer, Double Click To Confirm.)", "Use This As A Last Resort. You Cannot Hack Computers After Using.", function()
-	local currentTime = tick()
-	if currentTime - lastClickTime <= clickCooldown then
-		local player = game:GetService("Players").LocalPlayer
-		local character = player.Character
-		if character then
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			if humanoid then humanoid.Health = 0 end
-		end
-		game:GetService("StarterGui"):SetCore("SendNotification", {
-			Title = "Self Revive";
-			Text = "You can no longer hack computers! You can still escape however.";
-			Duration = 10;
-		})
-		lastClickTime = 0
-	else
-		game:GetService("StarterGui"):SetCore("SendNotification", {
-			Title = "Self Revive";
-			Text = "Click again to confirm.";
-			Duration = 3;
-		})
-		lastClickTime = currentTime
-	end
-end)
+        local currentTime = tick()
+
+        if currentTime - lastClickTime <= clickCooldown then
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character
+
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.Health = 0
+                end
+            end
+
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Self Revive";
+                Text = "You can no longer hack computers! You can still escape however.";
+                Duration = 10;
+            })
+            lastClickTime = 0
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Self Revive";
+                Text = "Click again to confirm.";
+                Duration = 3;
+            })
+
+            lastClickTime = currentTime
+        end
+    end)
 
 maintab:Button("Join Mid-Game", "Teleports You To The Map, May Softlock Survivors By Hacking Computers.", function()
-	local player = game:GetService("Players").LocalPlayer
-	local character = player.Character or player.CharacterAdded:Wait()
-	local function findOBSpawnPadInParent()
-		for _, model in pairs(game.Workspace:GetChildren()) do
-			if model:IsA("Model") then
-				local computerTable = model:FindFirstChild("ComputerTable")
-				if computerTable and computerTable:IsA("Model") then
-					local spawnPad = model:FindFirstChild("OBSpawnPad")
-					if spawnPad and spawnPad:IsA("BasePart") then return spawnPad end
-				end
-			end
-		end
-		return nil
-	end
-	local targetSpawnPad = findOBSpawnPadInParent()
-	if targetSpawnPad then
-		character:SetPrimaryPartCFrame(targetSpawnPad.CFrame + Vector3.new(0, 5, 0))
-	end
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local function findOBSpawnPadInParent()
+    for _, model in pairs(game.Workspace:GetChildren()) do
+        if model:IsA("Model") then
+            local computerTable = model:FindFirstChild("ComputerTable")
+            if computerTable and computerTable:IsA("Model") then
+                local spawnPad = model:FindFirstChild("OBSpawnPad")
+                if spawnPad and spawnPad:IsA("BasePart") then
+                    return spawnPad
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local targetSpawnPad = findOBSpawnPadInParent()
+
+if targetSpawnPad then
+    character:SetPrimaryPartCFrame(targetSpawnPad.CFrame + Vector3.new(0, 5, 0))
+end
 end)
 
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local CoreGui = game:GetService("CoreGui")
+
 local playerESPEnabled = false
 
+local function notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 3
+    })
+end
+
 local function applyHighlight(player)
-	if player == Players.LocalPlayer then return end
-	local char = player.Character
-	if not char or not char:IsA("Model") then return end
-	local existingHighlight = CoreGui:FindFirstChild("ESP_" .. player.Name)
-	if playerESPEnabled then
-		if not existingHighlight then
-			local highlight = Instance.new("Highlight")
-			highlight.Name = "ESP_" .. player.Name
-			highlight.Adornee = char
-			highlight.FillColor = Color3.fromRGB(0, 255, 255)
-			highlight.OutlineColor = Color3.new(1, 1, 1)
-			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-			highlight.Parent = CoreGui
-		end
-		local humanoid = char:FindFirstChild("Humanoid")
-		if humanoid then
-			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-			humanoid.NameDisplayDistance = math.huge
-		end
-	else
-		if existingHighlight then existingHighlight:Destroy() end
-		local humanoid = char:FindFirstChild("Humanoid")
-		if humanoid then
-			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
-			humanoid.NameDisplayDistance = 100
-		end
-	end
+    if player == Players.LocalPlayer then return end
+    local char = player.Character
+    if not char or not char:IsA("Model") then return end
+
+    local existingHighlight = CoreGui:FindFirstChild("ESP_" .. player.Name)
+
+    if playerESPEnabled then
+        if not existingHighlight then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESP_" .. player.Name
+            highlight.Adornee = char
+            highlight.FillColor = Color3.fromRGB(0, 255, 255)
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.Parent = CoreGui
+        end
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+            humanoid.NameDisplayDistance = math.huge
+        end
+    else
+        if existingHighlight then existingHighlight:Destroy() end
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+            humanoid.NameDisplayDistance = 100
+        end
+    end
 end
 
 esptab:Toggle("Player ESP", function()
-	playerESPEnabled = not playerESPEnabled
-	notify("Player ESP", playerESPEnabled and "Enabled." or "Disabled.")
-	for _, player in ipairs(Players:GetPlayers()) do applyHighlight(player) end
-	Players.PlayerAdded:Connect(function(player)
-		player.CharacterAdded:Connect(function()
-			if playerESPEnabled then task.wait(1) applyHighlight(player) end
-		end)
-	end)
+    playerESPEnabled = not playerESPEnabled
+    notify("Player ESP", playerESPEnabled and "Enabled." or "Disabled.")
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        applyHighlight(player)
+    end
+
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function()
+            if playerESPEnabled then
+                task.wait(1)
+                applyHighlight(player)
+            end
+        end)
+    end)
 end)
 
-local computerESPEnabled = false
-local exitESPEnabled = false
 
 esptab:Toggle("Computer ESP", function()
 	computerESPEnabled = not computerESPEnabled
 	notify("Computer ESP", computerESPEnabled and "Enabled." or "Disabled.")
-	for _, model in ipairs(workspace:GetDescendants()) do
+
+	for _, model in ipairs(Workspace:GetDescendants()) do
 		if model:IsA("Model") and model.Name == "ComputerTable" then
 			local highlight = model:FindFirstChild("ComputerESPHighlight")
 			if computerESPEnabled then
@@ -217,18 +264,21 @@ end)
 esptab:Toggle("Exit ESP", function()
 	exitESPEnabled = not exitESPEnabled
 	notify("Exit-Door ESP", exitESPEnabled and "Enabled." or "Disabled.")
-	for _, model in ipairs(workspace:GetDescendants()) do
+
+	for _, model in ipairs(Workspace:GetDescendants()) do
 		if model:IsA("Model") and model.Name == "ExitDoor" then
 			local highlight = model:FindFirstChild("ExitESPHighlight")
 			if exitESPEnabled then
 				if not highlight then
 					local newHighlight = Instance.new("Highlight")
 					newHighlight.Name = "ExitESPHighlight"
+
 					if model.PrimaryPart then
 						newHighlight.Adornee = model.PrimaryPart
 					else
 						newHighlight.Adornee = model
 					end
+					
 					newHighlight.FillColor = Color3.new(1, 1, 0)
 					newHighlight.OutlineTransparency = 1
 					newHighlight.FillTransparency = 0.5
@@ -242,408 +292,64 @@ esptab:Toggle("Exit ESP", function()
 	end
 end)
 
--- FE Audio Control intégré directement
 funtab:Button("FE Audio Control", function()
-	local ScreenGui = Instance.new("ScreenGui")
-	local Draggable = Instance.new("Frame")
-	local Frame = Instance.new("Frame")
-	local Frame_2 = Instance.new("Frame")
-	local Time = Instance.new("TextLabel")
-	local _1E = Instance.new("TextButton")
-	local UICorner = Instance.new("UICorner")
-	local _3E = Instance.new("TextButton")
-	local UICorner_2 = Instance.new("UICorner")
-	local SE = Instance.new("TextButton")
-	local UICorner_3 = Instance.new("UICorner")
-	local Path = Instance.new("TextLabel")
-	local Top = Instance.new("Frame")
-	local Top_2 = Instance.new("Frame")
-	local ImageLabel = Instance.new("ImageLabel")
-	local TextLabel = Instance.new("TextLabel")
-	local Exit = Instance.new("TextButton")
-	local Minizum = Instance.new("TextButton")
-	local Stop = Instance.new("TextButton")
-	local UICorner_4 = Instance.new("UICorner")
-	local IY = Instance.new("TextButton")
-	local UICorner_5 = Instance.new("UICorner")
-	local TextLabel_2 = Instance.new("TextLabel")
-	local Wait = Instance.new("TextBox")
-
-	ScreenGui.Name = "RFEControl"
-	ScreenGui.Parent = game:GetService("CoreGui")
-	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	ScreenGui.ResetOnSpawn = false
-
-	Draggable.Parent = ScreenGui
-	Draggable.BackgroundTransparency = 1
-	Draggable.BorderSizePixel = 0
-	Draggable.Position = UDim2.new(0.35026139, 0, 0.296158612, 0)
-	Draggable.Size = UDim2.new(0, 438, 0, 277)
-
-	Frame.Parent = Draggable
-	Frame.BackgroundTransparency = 1
-	Frame.BorderSizePixel = 0
-	Frame.Position = UDim2.new(-0.00133678317, 0, -0.00348037481, 0)
-	Frame.Size = UDim2.new(0, 438, 0, 277)
-
-	Frame_2.Parent = Frame
-	Frame_2.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	Frame_2.BorderSizePixel = 0
-	Frame_2.Position = UDim2.new(-0.00133678142, 0, -0.0179207586, 0)
-	Frame_2.Size = UDim2.new(0, 438, 0, 238)
-	Frame_2.Active = true
-	Frame_2.Draggable = true
-
-	Time.Parent = Frame_2
-	Time.BackgroundTransparency = 1
-	Time.Position = UDim2.new(0, 0, 0.0126050422, 0)
-	Time.Size = UDim2.new(0, 437, 0, 31)
-	Time.Font = Enum.Font.GothamSemibold
-	Time.Text = "RespectFilteringEnabled(RFE) : nil"
-	Time.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Time.TextScaled = true
-	Time.TextWrapped = true
-
-	_1E.Parent = Frame_2
-	_1E.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	_1E.BorderSizePixel = 0
-	_1E.Position = UDim2.new(0.0182648394, 0, 0.676470578, 0)
-	_1E.Size = UDim2.new(0, 208, 0, 33)
-	_1E.Font = Enum.Font.SourceSans
-	_1E.Text = "Mute Game"
-	_1E.TextColor3 = Color3.fromRGB(255, 255, 255)
-	_1E.TextScaled = true
-	UICorner.Parent = _1E
-
-	_3E.Parent = Frame_2
-	_3E.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	_3E.BorderSizePixel = 0
-	_3E.Position = UDim2.new(0.0159817357, 0, 0.142857149, 0)
-	_3E.Size = UDim2.new(0, 209, 0, 33)
-	_3E.Font = Enum.Font.SourceSans
-	_3E.Text = "Lister Sons"
-	_3E.TextColor3 = Color3.fromRGB(255, 255, 255)
-	_3E.TextSize = 30
-	UICorner_2.Parent = _3E
-
-	SE.Parent = Frame_2
-	SE.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	SE.BorderSizePixel = 0
-	SE.Position = UDim2.new(0.509132445, 0, 0.142857149, 0)
-	SE.Size = UDim2.new(0, 209, 0, 33)
-	SE.Font = Enum.Font.SourceSans
-	SE.Text = "Spam all SFX"
-	SE.TextColor3 = Color3.fromRGB(255, 255, 255)
-	SE.TextSize = 30
-	UICorner_3.Parent = SE
-
-	Path.Parent = Frame_2
-	Path.BackgroundTransparency = 1
-	Path.Position = UDim2.new(0.00684931502, 0, 0.815126061, 0)
-	Path.Size = UDim2.new(0, 435, 0, 44)
-	Path.Font = Enum.Font.GothamSemibold
-	Path.Text = "RespectFilteringEnabled must be disabled for it to work."
-	Path.TextColor3 = Color3.fromRGB(255, 0, 0)
-	Path.TextScaled = true
-	Path.TextWrapped = true
-
-	Top.Parent = Frame_2
-	Top.BackgroundColor3 = Color3.fromRGB(41, 60, 157)
-	Top.BorderSizePixel = 0
-	Top.Position = UDim2.new(-0.00133678142, 0, -0.128059402, 0)
-	Top.Size = UDim2.new(0, 438, 0, 30)
-
-	Top_2.Parent = Top
-	Top_2.BackgroundColor3 = Color3.fromRGB(30, 45, 118)
-	Top_2.BorderSizePixel = 0
-	Top_2.Position = UDim2.new(0, 0, 0.967638671, 0)
-	Top_2.Size = UDim2.new(0, 438, 0, 5)
-
-	ImageLabel.Parent = Top
-	ImageLabel.BackgroundTransparency = 1
-	ImageLabel.Position = UDim2.new(0, 0, 0.0666666701, 0)
-	ImageLabel.Size = UDim2.new(0, 29, 0, 27)
-	ImageLabel.Image = "http://www.roblox.com/asset/?id=8798286232"
-
-	TextLabel.Parent = ImageLabel
-	TextLabel.BackgroundTransparency = 1
-	TextLabel.Position = UDim2.new(0.997245014, 0, 0, 0)
-	TextLabel.Size = UDim2.new(0, 397, 0, 30)
-	TextLabel.Font = Enum.Font.GothamSemibold
-	TextLabel.Text = "RFE Control"
-	TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TextLabel.TextScaled = true
-	TextLabel.TextWrapped = true
-
-	Exit.Parent = Top
-	Exit.BackgroundTransparency = 1
-	Exit.Position = UDim2.new(0.924657524, 0, 0, 0)
-	Exit.Size = UDim2.new(0, 32, 0, 25)
-	Exit.Font = Enum.Font.GothamSemibold
-	Exit.Text = "x"
-	Exit.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Exit.TextScaled = true
-
-	Minizum.Parent = Top
-	Minizum.BackgroundTransparency = 1
-	Minizum.Position = UDim2.new(0.851598203, 0, 0, 0)
-	Minizum.Size = UDim2.new(0, 32, 0, 23)
-	Minizum.Font = Enum.Font.GothamSemibold
-	Minizum.Text = "_"
-	Minizum.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Minizum.TextScaled = true
-
-	Stop.Parent = Frame_2
-	Stop.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	Stop.BorderSizePixel = 0
-	Stop.Position = UDim2.new(0.0182648394, 0, 0.310924381, 0)
-	Stop.Size = UDim2.new(0, 424, 0, 33)
-	Stop.Font = Enum.Font.SourceSans
-	Stop.Text = "Stop"
-	Stop.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Stop.TextSize = 30
-	UICorner_4.Parent = Stop
-
-	IY.Parent = Frame_2
-	IY.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	IY.BorderSizePixel = 0
-	IY.Position = UDim2.new(0.509132445, 0, 0.676470578, 0)
-	IY.Size = UDim2.new(0, 209, 0, 33)
-	IY.Font = Enum.Font.SourceSans
-	IY.Text = "Unmute SFX"
-	IY.TextColor3 = Color3.fromRGB(255, 255, 255)
-	IY.TextScaled = true
-	UICorner_5.Parent = IY
-
-	TextLabel_2.Parent = Frame_2
-	TextLabel_2.BackgroundTransparency = 1
-	TextLabel_2.Position = UDim2.new(0.0182648394, 0, 0.466386557, 0)
-	TextLabel_2.Size = UDim2.new(0, 426, 0, 50)
-	TextLabel_2.Font = Enum.Font.GothamSemibold
-	TextLabel_2.Text = "Wait Time       :"
-	TextLabel_2.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TextLabel_2.TextSize = 30
-	TextLabel_2.TextWrapped = true
-	TextLabel_2.TextXAlignment = Enum.TextXAlignment.Left
-
-	Wait.Parent = Frame_2
-	Wait.BackgroundTransparency = 1
-	Wait.Position = UDim2.new(0.531963468, 0, 0.466386557, 0)
-	Wait.Size = UDim2.new(0, 199, 0, 50)
-	Wait.ZIndex = 99999
-	Wait.ClearTextOnFocus = false
-	Wait.Font = Enum.Font.GothamSemibold
-	Wait.Text = "0.5"
-	Wait.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Wait.TextSize = 30
-	Wait.TextWrapped = true
-
-	-- ScrollingFrame liste de sons
-	local SoundList = Instance.new("ScrollingFrame")
-	SoundList.Parent = Frame_2
-	SoundList.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	SoundList.BorderSizePixel = 0
-	SoundList.Position = UDim2.new(0.018, 0, 0.14, 0)
-	SoundList.Size = UDim2.new(0, 424, 0, 120)
-	SoundList.ScrollBarThickness = 6
-	SoundList.Visible = false
-	SoundList.ZIndex = 10
-
-	local UIListLayout = Instance.new("UIListLayout")
-	UIListLayout.Parent = SoundList
-	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-	local notification = Instance.new("Sound")
-	notification.Parent = game:GetService("SoundService")
-	notification.SoundId = "rbxassetid://9086208751"
-	notification.Volume = 5
-
-	-- Functions
-	Exit.MouseButton1Click:Connect(function()
-		ScreenGui:Destroy()
-	end)
-
-	local Mute = false
-	local Active = false
-
-	IY.MouseButton1Click:Connect(function()
-		Mute = false
-	end)
-
-	_1E.MouseButton1Click:Connect(function()
-		Mute = true
-		while Mute == true do
-			wait()
-			for _, sound in next, workspace:GetDescendants() do
-				if sound:IsA("Sound") then sound:Stop() end
-			end
-		end
-	end)
-
-	-- Lister Sons
-	_3E.MouseButton1Click:Connect(function()
-		for _, child in pairs(SoundList:GetChildren()) do
-			if child:IsA("TextButton") then child:Destroy() end
-		end
-
-		local sons = {}
-		local function scanPour(parent)
-			for _, obj in next, parent:GetDescendants() do
-				if obj:IsA("Sound") and obj.SoundId ~= "" then
-					table.insert(sons, obj)
-				end
-			end
-		end
-		scanPour(workspace)
-		scanPour(game:GetService("SoundService"))
-
-		if #sons == 0 then
-			game:GetService("StarterGui"):SetCore("SendNotification", {
-				Title = "Sons", Text = "Aucun son trouvé!", Duration = 3,
-			})
-			return
-		end
-
-		for i, sound in ipairs(sons) do
-			local soundId = sound.SoundId
-			local soundName = sound.Name
-			local parentName = sound.Parent and sound.Parent.Name or "?"
-
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, 0, 0, 28)
-			btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-			btn.BorderSizePixel = 0
-			btn.Font = Enum.Font.Gotham
-			btn.TextSize = 13
-			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-			btn.Text = soundName .. " | " .. parentName
-			btn.TextWrapped = true
-			btn.LayoutOrder = i
-			btn.ZIndex = 11
-			btn.Parent = SoundList
-
-			local lastClick = 0
-			btn.MouseButton1Click:Connect(function()
-				local now = tick()
-				if now - lastClick < 0.4 then
-					Active = true
-					game:GetService("StarterGui"):SetCore("SendNotification", {
-						Title = "Spam activé", Text = soundName, Duration = 2,
-					})
-					while Active do
-						local waitTime = tonumber(Wait.Text) or 0.5
-						wait(waitTime)
-						local s = Instance.new("Sound")
-						s.SoundId = soundId
-						s.Volume = 5
-						s.Parent = game:GetService("SoundService")
-						s:Play()
-						game:GetService("Debris"):AddItem(s, 10)
-					end
-				else
-					local s = Instance.new("Sound")
-					s.SoundId = soundId
-					s.Volume = 5
-					s.Parent = game:GetService("SoundService")
-					s:Play()
-					game:GetService("Debris"):AddItem(s, 10)
-					game:GetService("StarterGui"):SetCore("SendNotification", {
-						Title = "Son joué", Text = soundName, Duration = 2,
-					})
-				end
-				lastClick = now
-			end)
-		end
-
-		SoundList.CanvasSize = UDim2.new(0, 0, 0, #sons * 28)
-		SoundList.Visible = not SoundList.Visible
-	end)
-
-	-- Spam all SFX
-	SE.MouseButton1Click:Connect(function()
-		Active = true
-		while Active == true do
-			local StringValue = Wait.Text
-			wait(StringValue)
-			for _, sound in next, workspace:GetDescendants() do
-				if sound:IsA("Sound") then sound:Play() end
-			end
-		end
-	end)
-
-	Stop.MouseButton1Click:Connect(function()
-		Active = false
-	end)
-
-	notification:Play()
-	game:GetService("StarterGui"):SetCore("SendNotification", {
-		Title = "RFE Control"; Text = "RFE Control has loaded.";
-		Icon = ""; Duration = 10; Button1 = "Thanks!";
-	})
-
-	-- Check RFE
-	while ScreenGui and ScreenGui.Parent do
-		wait(0.5)
-		local setting = game:GetService("SoundService").RespectFilteringEnabled
-		if setting == true then
-			Time.TextColor3 = Color3.fromRGB(255, 0, 0)
-			Time.Text = "RespectFilteringEnabled(RFE) : true"
-		elseif setting == false then
-			Time.Text = "RespectFilteringEnabled(RFE) : false"
-			Time.TextColor3 = Color3.fromRGB(0, 255, 0)
-		end
-	end
+    loadstring(game:HttpGet("https://pastebin.com/raw/JPgX87P5"))()
 end)
 
 tpstab:Button("Spawn", function()
-	game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(111, 8, -414))
+    game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(111, 8, -414))
 end)
 
 tpstab:Button("Map Voting", function()
-	game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(157, 4, -344))
+    game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(157, 4, -344))
 end)
 
 tpstab:Button("Cave", function()
-	game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(279, -11, -366))
+    game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(279, -11, -366))
 end)
 
 tpstab:Button("Trading Servers (Min. Level 6)", function()
-	game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(65, 4, -308))
+    game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(65, 4, -308))
 end)
 
 tpstab:Label("In-Game Areas.")
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
 local function getRoot()
-	return player.Character or player.CharacterAdded:Wait(), "HumanoidRootPart"
+    return player.Character or player.CharacterAdded:Wait(), "HumanoidRootPart"
 end
 
 local function getOrderedModels(name)
-	local models = {}
-	local function scan(parent)
-		for _, obj in ipairs(parent:GetChildren()) do
-			if obj:IsA("Model") and obj.Name == name then
-				table.insert(models, obj)
-			end
-			if #obj:GetChildren() > 0 then scan(obj) end
-		end
-	end
-	scan(Workspace)
-	table.sort(models, function(a, b)
-		local ao = a:GetAttribute("Order") or 0
-		local bo = b:GetAttribute("Order") or 0
-		return ao < bo
-	end)
-	return models
+    local models = {}
+    local function scan(parent)
+        for _, obj in ipairs(parent:GetChildren()) do
+            if obj:IsA("Model") and obj.Name == name then
+                table.insert(models, obj)
+            end
+            if #obj:GetChildren() > 0 then
+                scan(obj)
+            end
+        end
+    end
+    scan(Workspace)
+
+    table.sort(models, function(a, b)
+        local ao = a:GetAttribute("Order") or 0
+        local bo = b:GetAttribute("Order") or 0
+        return ao < bo
+    end)
+
+    return models
 end
 
 local function Teleport(model)
-	if not model or not model.PrimaryPart then return end
-	local char, rootName = getRoot()
-	local root = char:WaitForChild(rootName)
-	local front = model.PrimaryPart.CFrame.Position + model.PrimaryPart.CFrame.LookVector * 5
-	root.CFrame = CFrame.new(front)
+    if not model or not model.PrimaryPart then return end
+    local char, rootName = getRoot()
+    local root = char:WaitForChild(rootName)
+    local front = model.PrimaryPart.CFrame.Position + model.PrimaryPart.CFrame.LookVector * 5
+    root.CFrame = CFrame.new(front)
 end
 
 local computerIndex = 1
@@ -651,45 +357,56 @@ local exitIndex = 1
 local freezerIndex = 1
 
 tpstab:Button("Computer TP", function()
-	local models = getOrderedModels("ComputerTable")
-	if #models == 0 then return end
-	Teleport(models[computerIndex])
-	computerIndex = computerIndex + 1
-	if computerIndex > #models then computerIndex = 1 end
+    local models = getOrderedModels("ComputerTable")
+    if #models == 0 then return end
+    local model = models[computerIndex]
+    Teleport(model)
+    computerIndex = computerIndex + 1
+    if computerIndex > #models then computerIndex = 1 end
 end)
 
 tpstab:Button("Exit TP", function()
-	local models = getOrderedModels("ExitDoor")
-	if #models == 0 then return end
-	Teleport(models[exitIndex])
-	exitIndex = exitIndex + 1
-	if exitIndex > #models then exitIndex = 1 end
+    local models = getOrderedModels("ExitDoor")
+    if #models == 0 then return end
+    local model = models[exitIndex]
+    Teleport(model)
+    exitIndex = exitIndex + 1
+    if exitIndex > #models then exitIndex = 1 end
 end)
 
 tpstab:Button("Freezer TP", function()
-	local models = getOrderedModels("FreezePod")
-	if #models == 0 then return end
-	Teleport(models[freezerIndex])
-	freezerIndex = freezerIndex + 1
-	if freezerIndex > #models then freezerIndex = 1 end
+    local models = getOrderedModels("FreezePod")
+    if #models == 0 then return end
+    local model = models[freezerIndex]
+    Teleport(model)
+    freezerIndex = freezerIndex + 1
+    if freezerIndex > #models then freezerIndex = 1 end
 end)
 
 funtab:Button("Infinite Yield", function()
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
 end)
 
 helptab:Button("Copy Owner Discord Username", function()
-	game:GetService("StarterGui"):SetCore("SendNotification", {
-		Title = "Discord Username", Text = "Copied to your clipboard!",
-		Duration = 3, Button1 = "alright fella",
-	})
-	setclipboard("ghostofcelleron")
+local StarterGui = game:GetService("StarterGui")
+
+StarterGui:SetCore("SendNotification", {
+    Title = "Discord Username",
+    Text = "Copied to your clipboard!",
+    Duration = 3,
+    Button1 = "alright fella",
+})
+setclipboard("ghostofcelleron")
 end)
 
 helptab:Button("Copy Discord Server Invite", function()
-	game:GetService("StarterGui"):SetCore("SendNotification", {
-		Title = "Discord Invite", Text = "Copied to your clipboard!",
-		Duration = 3, Button1 = "alright fella",
-	})
-	setclipboard("https://discord.gg/8stFYxJv4R")
+local StarterGui = game:GetService("StarterGui")
+
+StarterGui:SetCore("SendNotification", {
+    Title = "Discord Invite",
+    Text = "Copied to your clipboard!",
+    Duration = 3,
+    Button1 = "alright fella",
+})
+setclipboard("https://discord.gg/8stFYxJv4R")
 end)
