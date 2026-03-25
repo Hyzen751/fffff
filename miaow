@@ -1,4 +1,4 @@
-local ui = loadstring(game:HttpGet("https://raw.githubusercontent.com/Hyzen751/fffff/refs/heads/main/miaow"))()
+local ui = loadstring(game:HttpGet("https://raw.githubusercontent.com/ghostofcelleron/Celeron/refs/heads/main/daff"))()
 
 local win = ui:Create({
     Name = "Celeron's GUI (Flee The Facility)",
@@ -293,7 +293,7 @@ esptab:Toggle("Exit ESP", function()
 end)
 
 funtab:Button("FE Audio Control", function()
-    loadstring(game:HttpGet("https://pastebin.com/raw/US9Fi2d2"))()
+    loadstring(game:HttpGet("https://pastebin.com/raw/N0UNRs9d"))()
 end)
 
 tpstab:Button("Spawn", function()
