@@ -1,15 +1,16 @@
-local response = request({
-    Url = "https://raw.githubusercontent.com/Hyzen751/fffff/main/miaow",
-    Method = "GET"
-})
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
 
-if not response or not response.Body then
+local LocalPlayer = Players.LocalPlayer
+
+local UILib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Hyzen751/fffff/main/uilib.lua"))()
+if not UILib then
     return
 end
 
-local ui = loadstring(response.Body)()
-
-local win = ui:Create({
+local Window = UILib:Create({
     Name = "Wave | Flee The Facility 10 Player",
     ThemeColor = Color3.fromRGB(45, 11, 11),
     ThemeGradient = Color3.fromRGB(11, 22, 66),
@@ -18,169 +19,117 @@ local win = ui:Create({
     ToggledSideBar = true
 })
 
-local esptab = win:Tab("ESP")
-local inf tab = win:Tab("Info")
+local ESPTab = Window:Tab("ESP")
+local InfoTab = Window:Tab("Info")
 
-esptab:Label("ESP Features")
-inftab:Label("Made for 10 Player Flee")
+ESPTab:Label("ESP Features")
+InfoTab:Label("Made for 10 Player Flee")
 
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-
-local LocalPlayer = Players.LocalPlayer
-
-local playerESPEnabled = false
-local computerESPEnabled = false
-local podESPEnabled = false
+local PlayerESPEnabled = false
+local ComputerESPEnabled = false
+local PodESPEnabled = false
 
 local function notify(title, text)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = title,
-        Text = text,
-        Duration = 3
-    })
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = 3
+        })
+    end)
 end
 
-local function clearTagged(prefix)
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        if v.Name:match("^" .. prefix) then
+local function clearByName(name)
+    for _, v in ipairs(CoreGui:GetDescendants()) do
+        if v.Name == name then
             v:Destroy()
         end
     end
+
     for _, v in ipairs(Workspace:GetDescendants()) do
-        if v:IsA("Highlight") and v.Name:match("^" .. prefix) then
+        if v.Name == name then
             v:Destroy()
         end
     end
 end
 
-local function addPlayerESP(plr)
-    if plr == LocalPlayer or not plr.Character then
+local function addHighlight(target, name, color)
+    if not target then
         return
     end
 
-    local existing = CoreGui:FindFirstChild("WavePlayerESP_" .. plr.Name)
-    if existing then
-        existing:Destroy()
+    local old = target:FindFirstChild(name)
+    if old then
+        old:Destroy()
     end
 
     local h = Instance.new("Highlight")
-    h.Name = "WavePlayerESP_" .. plr.Name
-    h.Adornee = plr.Character
-    h.FillColor = Color3.fromRGB(0, 255, 255)
+    h.Name = name
+    h.Adornee = target
+    h.FillColor = color
     h.OutlineColor = Color3.fromRGB(255, 255, 255)
     h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    h.Parent = CoreGui
+    h.Parent = target
 end
 
 local function refreshPlayerESP()
-    clearTagged("WavePlayerESP_")
-    if not playerESPEnabled then
+    clearByName("WavePlayerESP")
+
+    if not PlayerESPEnabled then
         return
     end
 
     for _, plr in ipairs(Players:GetPlayers()) do
-        addPlayerESP(plr)
-    end
-end
-
-local function addComputerESP(model)
-    if model:FindFirstChild("WaveComputerESP") then
-        return
-    end
-
-    local color = Color3.fromRGB(0, 255, 170)
-
-    for _, part in ipairs(model:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == "Screen" then
-            color = part.Color
-            break
+        if plr ~= LocalPlayer and plr.Character then
+            addHighlight(plr.Character, "WavePlayerESP", Color3.fromRGB(0, 255, 255))
         end
     end
-
-    local h = Instance.new("Highlight")
-    h.Name = "WaveComputerESP"
-    h.Adornee = model
-    h.FillColor = color
-    h.OutlineColor = Color3.fromRGB(255, 255, 255)
-    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    h.Parent = model
 end
 
 local function refreshComputerESP()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Highlight") and obj.Name == "WaveComputerESP" then
-            obj:Destroy()
-        end
-    end
+    clearByName("WaveComputerESP")
 
-    if not computerESPEnabled then
+    if not ComputerESPEnabled then
         return
     end
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == "ComputerTable" then
-            addComputerESP(obj)
-        end
-    end
-end
-
-local function addPodESP(model)
-    if model:FindFirstChild("WavePodESP") then
-        return
-    end
-
-    local h = Instance.new("Highlight")
-    h.Name = "WavePodESP"
-    h.Adornee = model
-    h.FillColor = Color3.fromRGB(170, 85, 255)
-    h.OutlineColor = Color3.fromRGB(255, 255, 255)
-    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    h.Parent = model
-end
-
-local function refreshPodESP()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Highlight") and obj.Name == "WavePodESP" then
-            obj:Destroy()
-        end
-    end
-
-    if not podESPEnabled then
-        return
-    end
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == "FreezePod" then
-            addPodESP(obj)
+        if obj:IsA("Model") and (obj.Name == "ComputerTable" or obj.Name == "Computer") then
+            addHighlight(obj, "WaveComputerESP", Color3.fromRGB(0, 255, 170))
         end
     end
 end
 
-esptab:Toggle("Player ESP", function()
-    playerESPEnabled = not playerESPEnabled
-    notify("Player ESP", playerESPEnabled and "Enabled." or "Disabled.")
+local function refreshPodESP()
+    clearByName("WavePodESP")
+
+    if not PodESPEnabled then
+        return
+    end
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and (obj.Name == "FreezePod" or obj.Name == "Pod") then
+            addHighlight(obj, "WavePodESP", Color3.fromRGB(170, 85, 255))
+        end
+    end
+end
+
+ESPTab:Toggle("Player ESP", function()
+    PlayerESPEnabled = not PlayerESPEnabled
+    notify("Player ESP", PlayerESPEnabled and "Enabled" or "Disabled")
     refreshPlayerESP()
 end)
 
-esptab:Toggle("Computer ESP", function()
-    computerESPEnabled = not computerESPEnabled
-    notify("Computer ESP", computerESPEnabled and "Enabled." or "Disabled.")
+ESPTab:Toggle("Computer ESP", function()
+    ComputerESPEnabled = not ComputerESPEnabled
+    notify("Computer ESP", ComputerESPEnabled and "Enabled" or "Disabled")
     refreshComputerESP()
 end)
 
-esptab:Toggle("Freeze Pod ESP", function()
-    podESPEnabled = not podESPEnabled
-    notify("Freeze Pod ESP", podESPEnabled and "Enabled." or "Disabled.")
+ESPTab:Toggle("Freeze Pod ESP", function()
+    PodESPEnabled = not PodESPEnabled
+    notify("Freeze Pod ESP", PodESPEnabled and "Enabled" or "Disabled")
     refreshPodESP()
-end)
-
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        task.wait(1)
-        refreshPlayerESP()
-    end)
 end)
 
 for _, plr in ipairs(Players:GetPlayers()) do
@@ -190,14 +139,15 @@ for _, plr in ipairs(Players:GetPlayers()) do
     end)
 end
 
-Workspace.DescendantAdded:Connect(function(obj)
-    task.wait(0.2)
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(1)
+        refreshPlayerESP()
+    end)
+end)
 
-    if computerESPEnabled and obj:IsA("Model") and obj.Name == "ComputerTable" then
-        addComputerESP(obj)
-    end
-
-    if podESPEnabled and obj:IsA("Model") and obj.Name == "FreezePod" then
-        addPodESP(obj)
-    end
+Workspace.DescendantAdded:Connect(function()
+    task.wait(0.5)
+    refreshComputerESP()
+    refreshPodESP()
 end)
