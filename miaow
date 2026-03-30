@@ -1,17 +1,25 @@
+local http = request({
+    Url = "https://raw.githubusercontent.com/Hyzen751/fffff/main/uilib.lua",
+    Method = "GET"
+})
+
+if not http or http.StatusCode ~= 200 or not http.Body or http.Body == "" then
+    return
+end
+
+local Library = loadstring(http.Body)()
+if not Library then
+    return
+end
+
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
 local LocalPlayer = Players.LocalPlayer
 
-local UILib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Hyzen751/fffff/main/uilib.lua"))()
-if not UILib then
-    return
-end
-
-local Window = UILib:Create({
-    Name = "Wave | Flee The Facility 10 Player",
+local Window = Library:Create({
+    Name = "Wave | FTF 10 Player",
     ThemeColor = Color3.fromRGB(45, 11, 11),
     ThemeGradient = Color3.fromRGB(11, 22, 66),
     StartupSound = "rbxassetid://6958727243",
@@ -19,15 +27,19 @@ local Window = UILib:Create({
     ToggledSideBar = true
 })
 
+local MainTab = Window:Tab("Main")
 local ESPTab = Window:Tab("ESP")
 local InfoTab = Window:Tab("Info")
 
-ESPTab:Label("ESP Features")
-InfoTab:Label("Made for 10 Player Flee")
+MainTab:Label("Flee The Facility 10 Player")
+InfoTab:Label("ESP séparé pour Players / Beast / Computers / Pods")
 
-local PlayerESPEnabled = false
-local ComputerESPEnabled = false
-local PodESPEnabled = false
+local Flags = {
+    PlayerESP = false,
+    BeastESP = false,
+    ComputerESP = false,
+    PodESP = false
+}
 
 local function notify(title, text)
     pcall(function()
@@ -39,115 +51,186 @@ local function notify(title, text)
     end)
 end
 
-local function clearByName(name)
-    for _, v in ipairs(CoreGui:GetDescendants()) do
-        if v.Name == name then
-            v:Destroy()
-        end
-    end
-
-    for _, v in ipairs(Workspace:GetDescendants()) do
-        if v.Name == name then
-            v:Destroy()
+local function clearTag(tag)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Highlight") and obj.Name == tag then
+            obj:Destroy()
         end
     end
 end
 
-local function addHighlight(target, name, color)
+local function getCharacterRoot(character)
+    return character:FindFirstChild("HumanoidRootPart")
+        or character:FindFirstChild("UpperTorso")
+        or character:FindFirstChild("Torso")
+        or character.PrimaryPart
+end
+
+local function isBeast(plr)
+    if not plr then
+        return false
+    end
+
+    local role = plr:GetAttribute("Role")
+    if tostring(role):lower() == "beast" then
+        return true
+    end
+
+    local stats = plr:FindFirstChild("TempPlayerStats")
+    if stats and stats:FindFirstChild("IsBeast") then
+        return stats.IsBeast.Value == true
+    end
+
+    local flag = plr:FindFirstChild("IsBeast")
+    if flag then
+        return flag.Value == true
+    end
+
+    return false
+end
+
+local function addHighlight(target, tag, color)
     if not target then
         return
     end
 
-    local old = target:FindFirstChild(name)
+    local old = target:FindFirstChild(tag)
     if old then
         old:Destroy()
     end
 
     local h = Instance.new("Highlight")
-    h.Name = name
+    h.Name = tag
     h.Adornee = target
     h.FillColor = color
     h.OutlineColor = Color3.fromRGB(255, 255, 255)
+    h.FillTransparency = 0.35
+    h.OutlineTransparency = 0
     h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     h.Parent = target
 end
 
-local function refreshPlayerESP()
-    clearByName("WavePlayerESP")
-
-    if not PlayerESPEnabled then
-        return
-    end
+local function refreshPlayers()
+    clearTag("Wave_PlayerESP")
+    clearTag("Wave_BeastESP")
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
-            addHighlight(plr.Character, "WavePlayerESP", Color3.fromRGB(0, 255, 255))
+            if isBeast(plr) then
+                if Flags.BeastESP then
+                    addHighlight(plr.Character, "Wave_BeastESP", Color3.fromRGB(255, 70, 70))
+                end
+            else
+                if Flags.PlayerESP then
+                    addHighlight(plr.Character, "Wave_PlayerESP", Color3.fromRGB(0, 200, 255))
+                end
+            end
         end
     end
 end
 
-local function refreshComputerESP()
-    clearByName("WaveComputerESP")
+local function looksLikeComputer(obj)
+    local n = obj.Name:lower()
+    return n == "computertable" or n == "computer" or n:find("computer") or n:find("pc")
+end
 
-    if not ComputerESPEnabled then
+local function looksLikePod(obj)
+    local n = obj.Name:lower()
+    return n == "freezepod" or n == "pod" or n:find("freeze") or n:find("pod")
+end
+
+local function refreshComputers()
+    clearTag("Wave_ComputerESP")
+
+    if not Flags.ComputerESP then
         return
     end
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and (obj.Name == "ComputerTable" or obj.Name == "Computer") then
-            addHighlight(obj, "WaveComputerESP", Color3.fromRGB(0, 255, 170))
+        if obj:IsA("Model") and looksLikeComputer(obj) then
+            addHighlight(obj, "Wave_ComputerESP", Color3.fromRGB(0, 255, 170))
         end
     end
 end
 
-local function refreshPodESP()
-    clearByName("WavePodESP")
+local function refreshPods()
+    clearTag("Wave_PodESP")
 
-    if not PodESPEnabled then
+    if not Flags.PodESP then
         return
     end
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and (obj.Name == "FreezePod" or obj.Name == "Pod") then
-            addHighlight(obj, "WavePodESP", Color3.fromRGB(170, 85, 255))
+        if obj:IsA("Model") and looksLikePod(obj) then
+            addHighlight(obj, "Wave_PodESP", Color3.fromRGB(170, 85, 255))
         end
     end
 end
+
+local function refreshAll()
+    refreshPlayers()
+    refreshComputers()
+    refreshPods()
+end
+
+ESPTab:Label("Visuals")
 
 ESPTab:Toggle("Player ESP", function()
-    PlayerESPEnabled = not PlayerESPEnabled
-    notify("Player ESP", PlayerESPEnabled and "Enabled" or "Disabled")
-    refreshPlayerESP()
+    Flags.PlayerESP = not Flags.PlayerESP
+    notify("Player ESP", Flags.PlayerESP and "Enabled" or "Disabled")
+    refreshPlayers()
+end)
+
+ESPTab:Toggle("Beast ESP", function()
+    Flags.BeastESP = not Flags.BeastESP
+    notify("Beast ESP", Flags.BeastESP and "Enabled" or "Disabled")
+    refreshPlayers()
 end)
 
 ESPTab:Toggle("Computer ESP", function()
-    ComputerESPEnabled = not ComputerESPEnabled
-    notify("Computer ESP", ComputerESPEnabled and "Enabled" or "Disabled")
-    refreshComputerESP()
+    Flags.ComputerESP = not Flags.ComputerESP
+    notify("Computer ESP", Flags.ComputerESP and "Enabled" or "Disabled")
+    refreshComputers()
 end)
 
 ESPTab:Toggle("Freeze Pod ESP", function()
-    PodESPEnabled = not PodESPEnabled
-    notify("Freeze Pod ESP", PodESPEnabled and "Enabled" or "Disabled")
-    refreshPodESP()
+    Flags.PodESP = not Flags.PodESP
+    notify("Freeze Pod ESP", Flags.PodESP and "Enabled" or "Disabled")
+    refreshPods()
+end)
+
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(1)
+        refreshPlayers()
+    end)
 end)
 
 for _, plr in ipairs(Players:GetPlayers()) do
     plr.CharacterAdded:Connect(function()
         task.wait(1)
-        refreshPlayerESP()
+        refreshPlayers()
     end)
 end
 
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        task.wait(1)
-        refreshPlayerESP()
-    end)
+Workspace.DescendantAdded:Connect(function(obj)
+    task.wait(0.25)
+
+    if obj:IsA("Model") then
+        if Flags.ComputerESP and looksLikeComputer(obj) then
+            addHighlight(obj, "Wave_ComputerESP", Color3.fromRGB(0, 255, 170))
+        end
+
+        if Flags.PodESP and looksLikePod(obj) then
+            addHighlight(obj, "Wave_PodESP", Color3.fromRGB(170, 85, 255))
+        end
+    end
 end)
 
-Workspace.DescendantAdded:Connect(function()
-    task.wait(0.5)
-    refreshComputerESP()
-    refreshPodESP()
+task.spawn(function()
+    while task.wait(2) do
+        refreshAll()
+    end
 end)
+
+notify("Wave", "FTF 10 Player loaded")
