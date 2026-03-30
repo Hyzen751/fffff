@@ -1,5 +1,5 @@
 local response = request({
-    Url = "https://raw.githubusercontent.com/Hyzen751/fffff/refs/heads/main/miaow",
+    Url = "https://raw.githubusercontent.com/Hyzen751/fffff/main/miaow",
     Method = "GET"
 })
 
