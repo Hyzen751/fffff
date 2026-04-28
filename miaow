@@ -1,236 +1,146 @@
-local http = request({
-    Url = "https://raw.githubusercontent.com/Hyzen751/fffff/main/uilib.lua",
-    Method = "GET"
-})
-
-if not http or http.StatusCode ~= 200 or not http.Body or http.Body == "" then
-    return
-end
-
-local Library = loadstring(http.Body)()
-if not Library then
-    return
-end
-
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
 
-local LocalPlayer = Players.LocalPlayer
+-- Config
+local DEFLECT_ZONE = 15 -- distance autour de toi
+local HOTKEY = Enum.KeyCode.E -- touche pour activer/desactiver
+local autoDeflectEnabled = false
 
-local Window = Library:Create({
-    Name = "Wave | FTF 10 Player",
-    ThemeColor = Color3.fromRGB(45, 11, 11),
-    ThemeGradient = Color3.fromRGB(11, 22, 66),
-    StartupSound = "rbxassetid://6958727243",
-    ThemeFont = Enum.Font.GothamBold,
-    ToggledSideBar = true
-})
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoDeflectGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ResetOnSpawn = false
 
-local MainTab = Window:Tab("Main")
-local ESPTab = Window:Tab("ESP")
-local InfoTab = Window:Tab("Info")
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0.01, 0, 0.4, 0)
+Frame.Size = UDim2.new(0, 200, 0, 80)
+Frame.Active = true
+Frame.Draggable = true
 
-MainTab:Label("Flee The Facility 10 Player")
-InfoTab:Label("ESP séparé pour Players / Beast / Computers / Pods")
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Frame
 
-local Flags = {
-    PlayerESP = false,
-    BeastESP = false,
-    ComputerESP = false,
-    PodESP = false
-}
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = Frame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 0, 0, 5)
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Text = "Auto Deflect"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.TextSize = 16
 
-local function notify(title, text)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = 3
-        })
-    end)
-end
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Parent = Frame
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Position = UDim2.new(0.1, 0, 0, 40)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 30)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Text = "OFF  [E]"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 14
 
-local function clearTag(tag)
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Highlight") and obj.Name == tag then
-            obj:Destroy()
-        end
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0, 6)
+UICorner2.Parent = ToggleBtn
+
+-- Fonction toggle
+local function toggle()
+    autoDeflectEnabled = not autoDeflectEnabled
+    if autoDeflectEnabled then
+        ToggleBtn.Text = "ON  [E]"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 50)
+    else
+        ToggleBtn.Text = "OFF  [E]"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
 end
 
-local function getCharacterRoot(character)
-    return character:FindFirstChild("HumanoidRootPart")
-        or character:FindFirstChild("UpperTorso")
-        or character:FindFirstChild("Torso")
-        or character.PrimaryPart
-end
+ToggleBtn.MouseButton1Click:Connect(toggle)
 
-local function isBeast(plr)
-    if not plr then
-        return false
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == HOTKEY then
+        toggle()
     end
+end)
 
-    local role = plr:GetAttribute("Role")
-    if tostring(role):lower() == "beast" then
-        return true
-    end
-
-    local stats = plr:FindFirstChild("TempPlayerStats")
-    if stats and stats:FindFirstChild("IsBeast") then
-        return stats.IsBeast.Value == true
-    end
-
-    local flag = plr:FindFirstChild("IsBeast")
-    if flag then
-        return flag.Value == true
-    end
-
-    return false
-end
-
-local function addHighlight(target, tag, color)
-    if not target then
-        return
-    end
-
-    local old = target:FindFirstChild(tag)
-    if old then
-        old:Destroy()
-    end
-
-    local h = Instance.new("Highlight")
-    h.Name = tag
-    h.Adornee = target
-    h.FillColor = color
-    h.OutlineColor = Color3.fromRGB(255, 255, 255)
-    h.FillTransparency = 0.35
-    h.OutlineTransparency = 0
-    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    h.Parent = target
-end
-
-local function refreshPlayers()
-    clearTag("Wave_PlayerESP")
-    clearTag("Wave_BeastESP")
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            if isBeast(plr) then
-                if Flags.BeastESP then
-                    addHighlight(plr.Character, "Wave_BeastESP", Color3.fromRGB(255, 70, 70))
-                end
-            else
-                if Flags.PlayerESP then
-                    addHighlight(plr.Character, "Wave_PlayerESP", Color3.fromRGB(0, 200, 255))
-                end
+-- Trouve la balle
+local function findBall()
+    for _, obj in next, workspace:GetDescendants() do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name:find("ball") or name:find("deathball") or name:find("projectile") then
+                return obj
             end
         end
     end
+    return nil
 end
 
-local function looksLikeComputer(obj)
-    local n = obj.Name:lower()
-    return n == "computertable" or n == "computer" or n:find("computer") or n:find("pc")
-end
-
-local function looksLikePod(obj)
-    local n = obj.Name:lower()
-    return n == "freezepod" or n == "pod" or n:find("freeze") or n:find("pod")
-end
-
-local function refreshComputers()
-    clearTag("Wave_ComputerESP")
-
-    if not Flags.ComputerESP then
-        return
-    end
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and looksLikeComputer(obj) then
-            addHighlight(obj, "Wave_ComputerESP", Color3.fromRGB(0, 255, 170))
+-- Trouve le RemoteEvent pour deflect
+local function findDeflectRemote()
+    local rs = game:GetService("ReplicatedStorage")
+    for _, obj in next, rs:GetDescendants() do
+        if obj:IsA("RemoteEvent") then
+            local name = obj.Name:lower()
+            if name:find("parry") or name:find("deflect") or name:find("block") or name:find("swing") then
+                return obj
+            end
         end
     end
+    return nil
 end
 
-local function refreshPods()
-    clearTag("Wave_PodESP")
-
-    if not Flags.PodESP then
-        return
+-- Simule le click M1 pour deflect
+local function doDeflect()
+    -- Méthode 1: via RemoteEvent
+    local remote = findDeflectRemote()
+    if remote then
+        pcall(function()
+            remote:FireServer()
+        end)
     end
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and looksLikePod(obj) then
-            addHighlight(obj, "Wave_PodESP", Color3.fromRGB(170, 85, 255))
-        end
-    end
-end
-
-local function refreshAll()
-    refreshPlayers()
-    refreshComputers()
-    refreshPods()
-end
-
-ESPTab:Label("Visuals")
-
-ESPTab:Toggle("Player ESP", function()
-    Flags.PlayerESP = not Flags.PlayerESP
-    notify("Player ESP", Flags.PlayerESP and "Enabled" or "Disabled")
-    refreshPlayers()
-end)
-
-ESPTab:Toggle("Beast ESP", function()
-    Flags.BeastESP = not Flags.BeastESP
-    notify("Beast ESP", Flags.BeastESP and "Enabled" or "Disabled")
-    refreshPlayers()
-end)
-
-ESPTab:Toggle("Computer ESP", function()
-    Flags.ComputerESP = not Flags.ComputerESP
-    notify("Computer ESP", Flags.ComputerESP and "Enabled" or "Disabled")
-    refreshComputers()
-end)
-
-ESPTab:Toggle("Freeze Pod ESP", function()
-    Flags.PodESP = not Flags.PodESP
-    notify("Freeze Pod ESP", Flags.PodESP and "Enabled" or "Disabled")
-    refreshPods()
-end)
-
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        task.wait(1)
-        refreshPlayers()
-    end)
-end)
-
-for _, plr in ipairs(Players:GetPlayers()) do
-    plr.CharacterAdded:Connect(function()
-        task.wait(1)
-        refreshPlayers()
+    
+    -- Méthode 2: simule le clic souris
+    pcall(function()
+        local mouse = player:GetMouse()
+        mouse1click()
     end)
 end
 
-Workspace.DescendantAdded:Connect(function(obj)
-    task.wait(0.25)
+local lastDeflect = 0
 
-    if obj:IsA("Model") then
-        if Flags.ComputerESP and looksLikeComputer(obj) then
-            addHighlight(obj, "Wave_ComputerESP", Color3.fromRGB(0, 255, 170))
-        end
-
-        if Flags.PodESP and looksLikePod(obj) then
-            addHighlight(obj, "Wave_PodESP", Color3.fromRGB(170, 85, 255))
+-- Loop principal
+RunService.Heartbeat:Connect(function()
+    if not autoDeflectEnabled then return end
+    
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local ball = findBall()
+    if not ball then return end
+    
+    local dist = (ball.Position - root.Position).Magnitude
+    
+    -- Zone de deflect
+    if dist <= DEFLECT_ZONE then
+        local now = tick()
+        if now - lastDeflect > 0.3 then -- cooldown pour pas spammer
+            lastDeflect = now
+            doDeflect()
         end
     end
 end)
-
-task.spawn(function()
-    while task.wait(2) do
-        refreshAll()
-    end
-end)
-
-notify("Wave", "FTF 10 Player loaded")
